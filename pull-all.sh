@@ -2,7 +2,7 @@
 # Pull local repos by suite. Interactive picker or --prefix.
 #
 # Usage:
-#   ./pull-all.sh                     # picker: 1-5
+#   ./pull-all.sh                     # picker: be web mobile iaac other all
 #   molt pull --prefix all --rebase
 #   ./pull-all.sh --repo be-user --dry-run
 #

@@ -12,11 +12,10 @@ _info_picker_lines() {
   echo "  Picker menu:"
   local i=1
   for s in "${MOLT_VALID_SUITES[@]}"; do
-    root="$(workspace_root_for_prefix "${s}-")"
-    printf "    %s) %s-*   → %s\n" "$i" "$s" "$root"
+    printf "    %s) %s\n" "$i" "$(suite_menu_label "$s")"
     i=$((i + 1))
   done
-  printf "    %s) all      → be + web + mobile + iac\n" "$i"
+  printf "    %s) all      → %s\n" "$i" "${MOLT_VALID_SUITES[*]}"
   echo ""
   echo "  Skip picker:"
   echo "    molt-cli clone --prefix be"
@@ -32,7 +31,7 @@ _info_add_prefix_lines() {
   To add a new suite (e.g. data-* → molt/data/):
 
   1. lib/repos-common.sh
-       MOLT_VALID_SUITES=(be web mobile iac data)
+       MOLT_VALID_SUITES=(be web mobile iaac data)
 
   2. lib/prefix.sh
        _prefix_menu     — add menu line (e.g. 6) data-*)
@@ -98,15 +97,15 @@ EOF
 
   local s root n i=1
   for s in "${MOLT_VALID_SUITES[@]}"; do
-    root="$(workspace_root_for_prefix "${s}-")"
+    root="$(workspace_root_for_prefix "$(suite_repo_prefix "$s")")"
     if [[ "$json" -eq 1 ]]; then
-      _kv "picker_${i}" "${s}-* → ${root}"
+      _kv "picker_${i}" "$(suite_menu_label "$s")"
     fi
     i=$((i + 1))
   done
   if [[ "$json" -eq 1 ]]; then
     _kv "picker_${i}" "all → ${MOLT_VALID_SUITES[*]}"
-    _kv prefix_flag "--prefix be|web|mobile|iac|all"
+    _kv prefix_flag "--prefix be|web|mobile|iaac|other|all"
   fi
 
   if [[ "$json" -eq 0 ]]; then
@@ -137,9 +136,9 @@ EOF
     echo "--- workspaces ---"
   fi
   for s in "${MOLT_VALID_SUITES[@]}"; do
-    root="$(workspace_root_for_prefix "${s}-")"
+    root="$(workspace_root_for_prefix "$(suite_repo_prefix "$s")")"
     if [[ -d "$root" ]]; then
-      n="$(list_workspace_repos "$root" "${s}-" | wc -l | tr -d ' ')"
+      n="$(list_workspace_repos "$root" "$(suite_repo_prefix "$s")" | wc -l | tr -d ' ')"
       _kv "workspace_${s}" "$root ($n repos)"
     else
       _kv "workspace_${s}" "$root (missing)"
@@ -173,7 +172,7 @@ EOF
   molt-cli ssh setup --fix   SSH + fix remotes
   molt-cli install           ~/.local/bin install
   molt-cli activate          source ~/.config/molt/activate
-  molt-cli clone             Clone (picker: 1-5 or --prefix all)
+  molt-cli clone             Clone (picker or --prefix all)
   molt-cli pull              Pull (same picker)
   molt-cli promote list      List org repos (all suites)
   molt-cli promote merge-all Env branch promotion

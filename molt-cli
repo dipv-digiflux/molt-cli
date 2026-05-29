@@ -32,9 +32,9 @@ molt-cli $(molt_cli_version) — Molt workspace (${GITHUB_ORG})
 
 Run one command at a time. All settings: molt-cli info
 
-clone / pull / check / ssh fix — interactive picker each run (1-5):
+clone / pull / check / ssh fix — interactive picker each run:
 
-  1) be-*  2) web-*  3) mobile-*  4) iac-*  5) all
+  be / web / mobile / iaac-* / other / all
 
   molt-cli clone --prefix all     skip picker, all suites
   molt-cli info                   full picker + add-prefix guide
@@ -47,7 +47,7 @@ Core:
   activate          Load in this shell only (source, private)
 
 Workspace:
-  clone             Clone org repos (picker or --prefix be|web|mobile|iac|all)
+  clone             Clone org repos (picker or --prefix be|web|mobile|iaac|other|all)
   pull              Checkout + pull (same picker / --prefix)
   promote           Env branch promotion (list | merge-all | ...)
 

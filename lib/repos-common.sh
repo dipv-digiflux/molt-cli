@@ -1,15 +1,61 @@
 #!/usr/bin/env bash
 # Shared helpers for molt workspace CLI.
 #
-# Layout: $MOLT_ROOT/{be,web,mobile,iac}/<prefix>-*
+# Layout: $MOLT_ROOT/{be,web,mobile,iaac,other}/<suite>-*
 # CLI home: $MOLT_ROOT/molt-cli/
 
 # shellcheck source=lib/molt-profile.sh
 source "$(dirname "${BASH_SOURCE[0]}")/molt-profile.sh"
 
-MOLT_VALID_SUITES=(be web mobile iac)
+MOLT_VALID_SUITES=(be web mobile iaac other)
 # To add a prefix: append here, then update lib/prefix.sh picker menu.
-# "all" (--prefix all / picker 5) runs every suite in this list.
+# "all" (--prefix all) runs every suite in this list.
+
+# GitHub repo name prefix for a suite (iaac → iaac-*).
+suite_repo_prefix() {
+  local suite="${1%-}"
+  case "$suite" in
+    other) echo "other" ;;
+    *) echo "${suite}-" ;;
+  esac
+}
+
+# Workspace folder for a repo-name prefix (iaac- → iaac/).
+suite_from_repo_prefix() {
+  local p="${1%-}"
+  case "$p" in
+    other) echo "other" ;;
+    *) echo "$p" ;;
+  esac
+}
+
+suite_menu_label() {
+  local s="$1" root
+  case "$s" in
+    other)
+      root="$(workspace_root_for_prefix "other")"
+      echo "other      → ${root}/ (not be/web/mobile/iaac)"
+      ;;
+    *)
+      root="$(workspace_root_for_prefix "${s}-")"
+      echo "${s}-*       → ${root}/"
+      ;;
+  esac
+}
+
+matches_known_repo() {
+  local name="$1" s p
+  for s in "${MOLT_VALID_SUITES[@]}"; do
+    [[ "$s" == "other" ]] && continue
+    p="$(suite_repo_prefix "$s")"
+    matches_prefix "$name" "$p" && return 0
+  done
+  return 1
+}
+
+is_other_repo() {
+  ! matches_known_repo "$1"
+}
 
 die() { echo "error: $*" >&2; exit 1; }
 
@@ -17,10 +63,11 @@ require_cmd() {
   command -v "$1" >/dev/null || die "missing command: $1 (install and retry)"
 }
 
-# be- -> $MOLT_ROOT/be, web- -> $MOLT_ROOT/web
+# be- -> $MOLT_ROOT/be, iaac- -> $MOLT_ROOT/iaac, other -> $MOLT_ROOT/other
 workspace_root_for_prefix() {
   local prefix="${1:-be-}"
-  local suite="${prefix%-}"
+  local suite
+  suite="$(suite_from_repo_prefix "$prefix")"
   echo "$(molt_root)/$suite"
 }
 
@@ -35,9 +82,10 @@ normalize_prefix() {
     echo "all"
     return 0
   fi
+  [[ "$p" == "iac" ]] && p="iaac"
   local s
   for s in "${MOLT_VALID_SUITES[@]}"; do
-    [[ "$p" == "$s" ]] && echo "${p}-" && return 0
+    [[ "$p" == "$s" ]] && echo "$(suite_repo_prefix "$s")" && return 0
   done
   echo "error: prefix must be one of: ${MOLT_VALID_SUITES[*]} or all (got: $1)" >&2
   return 1
@@ -49,11 +97,8 @@ matches_prefix() {
 }
 
 matches_any_suite() {
-  local name="$1" s
-  for s in "${MOLT_VALID_SUITES[@]}"; do
-    matches_prefix "$name" "${s}-" && return 0
-  done
-  return 1
+  local name="$1"
+  matches_known_repo "$name" || is_other_repo "$name"
 }
 
 checkout_branch() {
@@ -72,6 +117,12 @@ checkout_branch() {
 list_org_repos() {
   local prefix="$1"
   require_cmd gh
+  if [[ "${prefix%-}" == "other" ]]; then
+    gh repo list "$GITHUB_ORG" --limit 1000 --json name --jq '.[].name' 2>/dev/null | while read -r name; do
+      is_other_repo "$name" && echo "$name"
+    done | sort -u
+    return 0
+  fi
   gh repo list "$GITHUB_ORG" --limit 1000 --json name --jq '.[].name' 2>/dev/null | while read -r name; do
     matches_prefix "$name" "$prefix" && echo "$name"
   done | sort -u
@@ -87,6 +138,14 @@ list_org_repos_any_suite() {
 list_workspace_repos() {
   local root="$1" prefix="$2"
   local name dir
+  if [[ "${prefix%-}" == "other" ]]; then
+    for dir in "$root"/*/; do
+      [[ -d "$dir" ]] || continue
+      [[ -d "$dir/.git" ]] || continue
+      basename "$dir"
+    done | sort -u
+    return 0
+  fi
   for dir in "$root"/*/; do
     [[ -d "$dir" ]] || continue
     name="$(basename "$dir")"

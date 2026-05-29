@@ -72,7 +72,7 @@ molt-cli ssh — GitHub SSH for git operations
   molt-cli ssh setup        gh git_protocol=ssh + test + optional --fix
 
 Options:
-  --prefix be|web|mobile|iac|all   Suite(s) for fix (interactive if omitted)
+  --prefix be|web|mobile|iaac|other|all   Suite(s) for fix (interactive if omitted)
   --fix                    With setup: also fix remotes
 EOF
         return 0
