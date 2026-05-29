@@ -1,0 +1,11 @@
+# Local profile (may contain tokens or personal paths)
+.molt/profile.env
+profile.env
+*.local.env
+
+# Editor / OS
+*.swp
+*~
+.DS_Store
+.idea/
+.vscode/

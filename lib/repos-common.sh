@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# Shared helpers for molt workspace scripts.
+#
+# Layout: $MOLT_ROOT/{be,web,mobile}/<prefix>-*
+# Scripts: $MOLT_ROOT/scripts/
+
+# shellcheck source=lib/molt-profile.sh
+source "$(dirname "${BASH_SOURCE[0]}")/molt-profile.sh"
+
+MOLT_VALID_SUITES=(be web mobile)
+
+die() { echo "error: $*" >&2; exit 1; }
+
+require_cmd() {
+  command -v "$1" >/dev/null || die "missing command: $1 (install and retry)"
+}
+
+# be- -> $MOLT_ROOT/be, web- -> $MOLT_ROOT/web, mobile- -> $MOLT_ROOT/mobile
+workspace_root_for_prefix() {
+  local prefix="${1:-be-}"
+  local suite="${prefix%-}"
+  echo "$(molt_root)/$suite"
+}
+
+normalize_prefix() {
+  local p="${1:-be}"
+  p="${p%-}"
+  local s
+  for s in "${MOLT_VALID_SUITES[@]}"; do
+    [[ "$p" == "$s" ]] && echo "${p}-" && return 0
+  done
+  echo "error: prefix must be one of: ${MOLT_VALID_SUITES[*]} (got: $1)" >&2
+  return 1
+}
+
+matches_prefix() {
+  local name="$1" prefix="$2"
+  [[ "$name" == "${prefix}"* ]]
+}
+
+matches_any_suite() {
+  local name="$1" s
+  for s in "${MOLT_VALID_SUITES[@]}"; do
+    matches_prefix "$name" "${s}-" && return 0
+  done
+  return 1
+}
+
+checkout_branch() {
+  local dir="$1" branch="$2"
+  git -C "$dir" fetch -q origin "$branch" 2>/dev/null || git -C "$dir" fetch -q origin
+  if git -C "$dir" show-ref --verify --quiet "refs/heads/$branch"; then
+    git -C "$dir" checkout "$branch"
+  elif git -C "$dir" show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+    git -C "$dir" checkout -B "$branch" "origin/$branch"
+  else
+    echo "  WARNING: branch $branch not found in $dir" >&2
+    return 1
+  fi
+}
+
+list_org_repos() {
+  local prefix="$1"
+  require_cmd gh
+  gh repo list "$GITHUB_ORG" --limit 1000 --json name --jq '.[].name' 2>/dev/null | while read -r name; do
+    matches_prefix "$name" "$prefix" && echo "$name"
+  done | sort -u
+}
+
+list_org_repos_any_suite() {
+  require_cmd gh
+  gh repo list "$GITHUB_ORG" --limit 1000 --json name --jq '.[].name' 2>/dev/null | while read -r name; do
+    matches_any_suite "$name" && echo "$name"
+  done | sort -u
+}
+
+list_workspace_repos() {
+  local root="$1" prefix="$2"
+  local name dir
+  for dir in "$root"/*/; do
+    [[ -d "$dir" ]] || continue
+    name="$(basename "$dir")"
+    matches_prefix "$name" "$prefix" || continue
+    [[ -d "$dir/.git" ]] || continue
+    echo "$name"
+  done | sort -u
+}
+
+clone_url_for() {
+  local repo="$1"
+  local url
+  url="$(gh repo view "${GITHUB_ORG}/${repo}" --json sshUrl --jq -r '.sshUrl // empty' 2>/dev/null || true)"
+  [[ -n "$url" ]] || url="git@github.com:${GITHUB_ORG}/${repo}.git"
+  echo "$url"
+}
+
+repo_has_remote_branch() {
+  local repo="$1" branch="$2"
+  require_cmd gh
+  gh api "repos/${GITHUB_ORG}/${repo}/branches/${branch//\//%2F}" &>/dev/null
+}
