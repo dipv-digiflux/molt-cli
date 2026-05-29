@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Shared helpers for molt workspace scripts.
+# Shared helpers for molt workspace CLI.
 #
 # Layout: $MOLT_ROOT/{be,web,mobile,iac}/<prefix>-*
-# Scripts: $MOLT_ROOT/scripts/
+# CLI home: $MOLT_ROOT/molt-cli/
 
 # shellcheck source=lib/molt-profile.sh
 source "$(dirname "${BASH_SOURCE[0]}")/molt-profile.sh"

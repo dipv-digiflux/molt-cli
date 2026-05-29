@@ -177,8 +177,8 @@ EOF
   molt-cli pull              Pull (same picker)
   molt-cli promote list      List org repos (all suites)
   molt-cli promote merge-all Env branch promotion
-  molt-cli setup-git         Local git for scripts repo
-  molt-cli git status        Git in scripts repo only
+  molt-cli setup-git         Local git for molt-cli repo
+  molt-cli git status        Git in molt-cli repo only
 
 Profile: ~/.config/molt/profile.env
 Help:    molt-cli <command> --help

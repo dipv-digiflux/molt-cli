@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# molt-cli install — private install to ~/.local/bin (no workspace scripts on PATH)
+# molt-cli install — private install to ~/.local/bin (no workspace molt-cli repo on PATH)
 
 molt_activate_file() {
   echo "${XDG_CONFIG_HOME:-$HOME/.config}/molt/activate"
@@ -13,7 +13,7 @@ write_private_activate() {
 # Private molt-cli session — source when you need it (not for .zshrc / .bashrc)
 #   source ${af}
 #
-# Does not add ~/Workspace/molt/scripts to PATH.
+# Does not add ~/Workspace/molt/molt-cli to PATH.
 
 case ":\$PATH:" in
   *":${target}:"*) ;;
@@ -41,7 +41,7 @@ molt-cli activate — load molt-cli in this shell only (private)
   # or:
   source ~/.config/molt/activate
 
-Does not modify .zshrc. Does not put Workspace/molt/scripts on PATH.
+Does not modify .zshrc. Does not put Workspace/molt/molt-cli on PATH.
 EOF
       return 0
       ;;
@@ -65,7 +65,7 @@ molt-cli install — private install (recommended)
 
   molt-cli install
 
-Installs symlinks in ~/.local/bin only — NOT ~/Workspace/molt/scripts on PATH.
+Installs symlinks in ~/.local/bin only — NOT ~/Workspace/molt/molt-cli on PATH.
 
 If ~/.local/bin is already on PATH (common on Linux), use molt-cli immediately.
 
@@ -112,7 +112,7 @@ EOF
     echo "  source ~/.config/molt/activate"
     echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
     echo ""
-    echo "Optional once in ~/.zshrc (not the scripts folder):"
+    echo "Optional once in ~/.zshrc (not the molt-cli folder):"
     echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
   fi
 

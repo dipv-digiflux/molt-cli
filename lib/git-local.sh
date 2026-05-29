@@ -43,7 +43,7 @@ cmd_setup_git() {
       --commit) do_commit=1 ;;
       -h|--help)
         cat <<'EOF'
-molt setup-git — init local git for this scripts repo
+molt setup-git — init local git for this molt-cli repo
 
 Applies repo-local user.name / user.email (never --global).
 
@@ -56,7 +56,7 @@ Options:
   --commit   Create initial commit if the repo has no commits yet
 
 After setup:
-  git -C ~/Workspace/molt/scripts log --oneline
+  git -C ~/Workspace/molt/molt-cli log --oneline
   molt git status
 EOF
         return 0
@@ -93,7 +93,7 @@ EOF
         echo "nothing to commit"
       else
         git -C "$repo" commit -m "$(cat <<'EOF'
-chore: initial molt scripts workspace tooling
+chore: initial molt-cli workspace tooling
 
 Unified molt CLI, profile, check, clone/pull/promote helpers.
 EOF
@@ -114,7 +114,7 @@ cmd_git() {
 
   local repo
   repo="$(molt_scripts_repo)"
-  [[ -d "$repo/.git" ]] || die "scripts repo not initialized (run: molt setup-git)"
+  [[ -d "$repo/.git" ]] || die "molt-cli repo not initialized (run: molt setup-git)"
 
   case "$sub" in
     status|log|diff|show|branch|tag)
@@ -122,14 +122,14 @@ cmd_git() {
       ;;
     -h|--help)
       cat <<'EOF'
-molt git — run git in the scripts repo (local version control)
+molt git — run git in the molt-cli repo (local version control)
 
   molt git status
   molt git log --oneline -10
   molt git diff
   molt git tag v1.0.0
 
-For commits, use git -C ~/Workspace/molt/scripts ... or cd there.
+For commits, use git -C ~/Workspace/molt/molt-cli ... or cd there.
 Repo-local identity comes from profile (MOLT_SCRIPTS_GIT_*).
 EOF
       ;;

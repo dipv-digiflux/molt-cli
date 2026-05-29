@@ -2,7 +2,7 @@
 
 Workspace CLI for Molt repos. Clone, pull, check, and promote environment branches across the org — all from one command.
 
-**Private install** — never put `~/Workspace/molt/scripts` on your PATH. Use `molt-cli install` instead.
+**Private install** — never put `~/Workspace/molt/molt-cli` on your PATH. Use `molt-cli install` instead.
 
 ---
 
@@ -20,7 +20,7 @@ Workspace CLI for Molt repos. Clone, pull, check, and promote environment branch
 - [Commands reference](#commands-reference)
 - [Examples by task](#examples-by-task)
 - [Environment promotion](#environment-promotion)
-- [Scripts repo maintenance](#scripts-repo-maintenance)
+- [molt-cli repo maintenance](#molt-cli-repo-maintenance)
 - [Troubleshooting](#troubleshooting)
 - [Maintaining molt-cli](#maintaining-molt-cli)
 
@@ -47,7 +47,7 @@ You also need:
 
 ```
 ~/Workspace/molt/
-├── scripts/          ← this repo (molt-cli lives here)
+├── molt-cli/          ← this repo (molt-cli lives here)
 ├── be/               ← backend repos   (be-*)
 ├── web/              ← web apps        (web-*)
 ├── mobile/           ← mobile apps     (mobile-*)
@@ -62,7 +62,7 @@ Each suite folder holds cloned repos matching that prefix, e.g. `be/be-user`, `w
 
 ```bash
 # 1. Install CLI (private — ~/.local/bin only)
-cd ~/Workspace/molt/scripts
+cd ~/Workspace/molt/molt-cli
 ./molt-cli install
 
 # 2. Load in this shell if molt-cli is not found
@@ -82,7 +82,7 @@ molt-cli pull
 ### Recommended (private install)
 
 ```bash
-cd ~/Workspace/molt/scripts
+cd ~/Workspace/molt/molt-cli
 ./molt-cli install
 # or:
 ./install.sh
@@ -92,7 +92,7 @@ This:
 
 - Symlinks `molt-cli` and `molt` into **`~/.local/bin`**
 - Writes **`~/.config/molt/activate`** (mode `600`) for per-session loading
-- Does **not** add the scripts folder to PATH
+- Does **not** add the molt-cli folder to PATH
 
 ### Install options
 
@@ -111,7 +111,7 @@ source <(molt-cli activate --print)
 source ~/.config/molt/activate
 ```
 
-**Option B — one line in shell rc (only `~/.local/bin`, not scripts/):**
+**Option B — one line in shell rc (only `~/.local/bin`, not molt-cli/):**
 
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
@@ -121,7 +121,7 @@ export PATH="$HOME/.local/bin:$PATH"
 
 ```bash
 # wrong — exposes workspace path; use install + ~/.local/bin instead
-export PATH="$HOME/Workspace/molt/scripts:$PATH"
+export PATH="$HOME/Workspace/molt/molt-cli:$PATH"
 ```
 
 ---
@@ -131,7 +131,7 @@ export PATH="$HOME/Workspace/molt/scripts:$PATH"
 Settings live in **`~/.config/molt/profile.env`**. Copy the example:
 
 ```bash
-cp ~/Workspace/molt/scripts/.molt/profile.env.example ~/.config/molt/profile.env
+cp ~/Workspace/molt/molt-cli/.molt/profile.env.example ~/.config/molt/profile.env
 chmod 600 ~/.config/molt/profile.env
 ```
 
@@ -149,11 +149,11 @@ Profile search order (first file found is loaded):
 | `MOLT_DEFAULT_BRANCH` | `env/staging` | Branch to checkout on clone/pull |
 | `MOLT_GIT_PROTOCOL` | `ssh` | `ssh` or `https` for clone URLs |
 | `MOLT_GITHUB_HOST` | `github.com` | SSH host for git |
-| `MOLT_ROOT` | parent of `scripts/` | Workspace root |
+| `MOLT_ROOT` | parent of `molt-cli/` | Workspace root |
 | `GIT_PROMOTE_NAME` | `env-promote-script` | Git identity for promote pushes |
 | `GIT_PROMOTE_EMAIL` | `promote@local` | Email for promote pushes |
-| `MOLT_SCRIPTS_GIT_NAME` | `$GIT_PROMOTE_NAME` | Local git name for scripts repo |
-| `MOLT_SCRIPTS_GIT_EMAIL` | `$GIT_PROMOTE_EMAIL` | Local git email for scripts repo |
+| `MOLT_SCRIPTS_GIT_NAME` | `$GIT_PROMOTE_NAME` | Local git name for molt-cli repo |
+| `MOLT_SCRIPTS_GIT_EMAIL` | `$GIT_PROMOTE_EMAIL` | Local git email for molt-cli repo |
 | `MERGE_STYLE` | `merge` | PR merge style: `merge`, `squash`, or `rebase` |
 
 ### Example profile
@@ -374,12 +374,12 @@ molt-cli pull --rebase           # picker → pull local repos
 
 | Command | Description |
 |---------|-------------|
-| `setup-git` | Init local git for scripts repo |
+| `setup-git` | Init local git for molt-cli repo |
 | `setup-git --commit` | Init + create initial commit |
-| `git status` | Git status in scripts repo only |
-| `git log` | Git log in scripts repo only |
-| `git diff` | Git diff in scripts repo only |
-| `git tag` | Tag in scripts repo only |
+| `git status` | Git status in molt-cli repo only |
+| `git log` | Git log in molt-cli repo only |
+| `git diff` | Git diff in molt-cli repo only |
+| `git tag` | Tag in molt-cli repo only |
 
 Every command supports `--help`:
 
@@ -396,7 +396,7 @@ molt-cli pull --help
 ### First-time setup
 
 ```bash
-cd ~/Workspace/molt/scripts
+cd ~/Workspace/molt/molt-cli
 ./molt-cli install
 source <(molt-cli activate --print)
 
@@ -534,9 +534,9 @@ MOLT_ENV_CHAIN=(
 
 ---
 
-## Scripts repo maintenance
+## molt-cli repo maintenance
 
-The scripts folder has its **own local git** — it never touches your global git config.
+The molt-cli folder has its **own local git** — it never touches your global git config.
 
 ### Initialize version control
 
@@ -552,15 +552,15 @@ MOLT_SCRIPTS_GIT_NAME=Your Name
 MOLT_SCRIPTS_GIT_EMAIL=you@example.com
 ```
 
-### Day-to-day git in scripts repo
+### Day-to-day git in molt-cli repo
 
 ```bash
 molt git status
 molt git log --oneline -10
 molt git diff
 
-# commits — use git directly in the scripts folder
-cd ~/Workspace/molt/scripts
+# commits — use git directly in the molt-cli folder
+cd ~/Workspace/molt/molt-cli
 git add -A
 git commit -m "feat: add new helper"
 git tag v0.2.0
@@ -571,13 +571,13 @@ git tag v0.2.0
 If you changed `molt-cli` or lib files locally:
 
 ```bash
-cd ~/Workspace/molt/scripts
+cd ~/Workspace/molt/molt-cli
 git pull                          # if tracking a remote
 # symlinks in ~/.local/bin point to molt-cli — no reinstall needed
 molt-cli info                     # verify version and paths
 ```
 
-Reinstall only if you moved the scripts folder or changed install dir:
+Reinstall only if you moved the molt-cli folder or changed install dir:
 
 ```bash
 molt-cli install --force
@@ -616,7 +616,7 @@ molt-cli ssh test
 **Project structure:**
 
 ```
-scripts/
+molt-cli/
 ├── molt-cli              # main entry point
 ├── molt                  # shortcut → molt-cli
 ├── install.sh            # wrapper → molt-cli install
@@ -631,7 +631,7 @@ scripts/
 │   ├── check.sh          # health check
 │   ├── info.sh           # info command
 │   ├── install-cmd.sh    # install/activate
-│   └── git-local.sh      # scripts repo git
+│   └── git-local.sh      # molt-cli repo git
 └── .molt/
     └── profile.env.example
 ```
@@ -666,14 +666,14 @@ molt-cli check
 **Profile and security:**
 
 - Keep `~/.config/molt/profile.env` at mode `600`
-- Never commit real emails/secrets to the scripts repo
+- Never commit real emails/secrets to the molt-cli repo
 - Use repo-local git config only (`molt setup-git`)
 
 **Updating on a new machine:**
 
 ```bash
-# Clone or copy ~/Workspace/molt/scripts
-cd ~/Workspace/molt/scripts
+# Clone or copy ~/Workspace/molt/molt-cli
+cd ~/Workspace/molt/molt-cli
 ./molt-cli install
 cp .molt/profile.env.example ~/.config/molt/profile.env
 # edit profile

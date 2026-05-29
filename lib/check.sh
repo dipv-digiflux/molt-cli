@@ -187,7 +187,7 @@ EOF
   done
 
   echo ""
-  echo "--- scripts repo ---"
+  echo "--- molt-cli repo ---"
   local srepo
   srepo="$(molt_scripts_dir)"
   if [[ -d "$srepo/.git" ]]; then

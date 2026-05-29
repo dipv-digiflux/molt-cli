@@ -43,7 +43,7 @@ Core:
   info              Show org, paths, SSH, workspaces, commands
   check             Verify tools, gh, SSH, and local repos
   ssh               test | keys | fix | setup  (GitHub over SSH)
-  install           Private install (~/.local/bin, not scripts/ on PATH)
+  install           Private install (~/.local/bin, not molt-cli/ on PATH)
   activate          Load in this shell only (source, private)
 
 Workspace:
@@ -53,7 +53,7 @@ Workspace:
 
 Scripts repo:
   setup-git         Local git for tooling version history
-  git               status | log | diff | tag (scripts repo only)
+  git               status | log | diff | tag (molt-cli repo only)
 
 Config: ~/.config/molt/profile.env
 Help:   molt-cli <command> --help

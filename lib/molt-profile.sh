@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Single profile for all molt scripts. Override via env or a profile file (see below).
+# Single profile for molt-cli. Override via env or a profile file (see below).
 #
 # Profile file search order (first found wins for each unset variable):
 #   1. $MOLT_PROFILE (explicit path)
@@ -51,7 +51,7 @@ molt_load_profile() {
   : "${MERGE_STYLE:=merge}"
   : "${GIT_PROMOTE_EMAIL:=promote@local}"
   : "${GIT_PROMOTE_NAME:=env-promote-script}"
-  # Local commits in ~/Workspace/molt/scripts (repo-local git config only)
+  # Local commits in ~/Workspace/molt/molt-cli (repo-local git config only)
   : "${MOLT_SCRIPTS_GIT_NAME:=${GIT_PROMOTE_NAME}}"
   : "${MOLT_SCRIPTS_GIT_EMAIL:=${GIT_PROMOTE_EMAIL}}"
   : "${MOLT_GIT_PROTOCOL:=ssh}"
