@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Clone every org repo matching a prefix (be-*, web-*, mobile-*) into molt/{be,web,mobile}/.
+# Clone org repos by suite. Interactive picker or --prefix.
 #
 # Usage:
-#   ./clone-all.sh
+#   ./clone-all.sh                    # picker: 1=be 2=web 3=mobile 4=iac 5=all
 #   molt clone --prefix web
-#   ./clone-all.sh --prefix mobile --branch env/staging
+#   molt clone --prefix all
 #   ./clone-all.sh --repo be-user --dry-run
 #
 set -euo pipefail
@@ -18,38 +18,20 @@ source "$SCRIPT_DIR/lib/ssh.sh"
 # shellcheck source=lib/prefix.sh
 source "$SCRIPT_DIR/lib/prefix.sh"
 
-PREFIX=""
-PREFIX_EXPLICIT=0
 BRANCH="$MOLT_DEFAULT_BRANCH"
 DRY_RUN=0
 ONLY_REPO=""
+PREFIX_ARG=""
+PREFIX_EXPLICIT=0
 
-cmd_clone() {
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      --prefix)   PREFIX="$(normalize_prefix "${2:?}")" || exit 1; PREFIX_EXPLICIT=1; shift ;;
-      --branch)   BRANCH="${2:?}"; shift ;;
-      --repo)     ONLY_REPO="${2:?}"; shift ;;
-      --dry-run)  DRY_RUN=1 ;;
-      -h|--help)
-        sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'
-        exit 0
-        ;;
-      *) die "unknown flag: $1" ;;
-    esac
-    shift
-  done
+clone_suite() {
+  local PREFIX="$1"
+  local WORKSPACE_ROOT="${WORKSPACE_ROOT:-$(workspace_root_for_prefix "$PREFIX")}"
+  local repos=() repo dir url failed=0
 
-  if [[ "$PREFIX_EXPLICIT" -eq 0 ]]; then
-    PREFIX="$(resolve_default_prefix)"
-  fi
+  echo ""
+  echo "=== suite: ${PREFIX%-} ($WORKSPACE_ROOT) ==="
 
-  require_cmd gh
-  require_cmd git
-
-  WORKSPACE_ROOT="${WORKSPACE_ROOT:-$(workspace_root_for_prefix "$PREFIX")}"
-
-  local repos=()
   if [[ -n "$ONLY_REPO" ]]; then
     repos=("$ONLY_REPO")
   else
@@ -58,10 +40,9 @@ cmd_clone() {
 
   [[ ${#repos[@]} -gt 0 ]] || die "no ${PREFIX}* repos in ${GITHUB_ORG}"
 
-  local failed=0
   for repo in "${repos[@]}"; do
-    local dir="$WORKSPACE_ROOT/$repo"
-    echo "=== $repo ==="
+    dir="$WORKSPACE_ROOT/$repo"
+    echo "--- $repo ---"
     if [[ -d "$dir/.git" ]]; then
       echo "  skip: already cloned"
       if [[ "$DRY_RUN" -eq 1 ]]; then
@@ -76,7 +57,6 @@ cmd_clone() {
       continue
     fi
 
-    local url
     url="$(clone_url_for "$repo")"
     if [[ "$DRY_RUN" -eq 1 ]]; then
       echo "  would: git clone $url $dir"
@@ -98,9 +78,43 @@ cmd_clone() {
     fi
   done
 
-  if [[ "$failed" -gt 0 ]]; then
-    die "$failed repo(s) failed"
+  [[ "$failed" -eq 0 ]] || return 1
+}
+
+cmd_clone() {
+  local prefixes=() p total_failed=0
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --prefix)   PREFIX_ARG="${2:?}"; PREFIX_EXPLICIT=1; shift ;;
+      --branch)   BRANCH="${2:?}"; shift ;;
+      --repo)     ONLY_REPO="${2:?}"; shift ;;
+      --dry-run)  DRY_RUN=1 ;;
+      -h|--help)
+        sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'
+        exit 0
+        ;;
+      *) die "unknown flag: $1" ;;
+    esac
+    shift
+  done
+
+  require_cmd gh
+  require_cmd git
+
+  if [[ -n "$ONLY_REPO" ]]; then
+    prefixes=("$(infer_prefix_from_repo "$ONLY_REPO")")
+  elif [[ "$PREFIX_EXPLICIT" -eq 1 ]]; then
+    while IFS= read -r p; do prefixes+=("$p"); done < <(expand_prefixes "$PREFIX_ARG")
+  else
+    while IFS= read -r p; do prefixes+=("$p"); done < <(resolve_prefixes "")
   fi
+
+  for p in "${prefixes[@]}"; do
+    clone_suite "$p" || total_failed=$((total_failed + 1))
+  done
+
+  [[ "$total_failed" -eq 0 ]] || die "$total_failed suite(s) had failures"
 }
 
 cmd_clone "$@"

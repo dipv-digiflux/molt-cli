@@ -108,10 +108,11 @@ EOF
     echo "PATH: molt-cli ready ($(command -v molt-cli))"
   else
     echo ""
-    echo "Private (this terminal only — do not add Workspace/molt/scripts to PATH):"
-    echo "  source <(molt-cli activate --print)"
+    echo "Load in this shell (pick one):"
+    echo "  source ~/.config/molt/activate"
+    echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
     echo ""
-    echo "Or add only ~/.local/bin once in ~/.zshrc (not the scripts folder):"
+    echo "Optional once in ~/.zshrc (not the scripts folder):"
     echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
   fi
 

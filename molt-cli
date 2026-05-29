@@ -8,7 +8,7 @@
 #
 set -euo pipefail
 
-MOLT_CLI_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MOLT_CLI_HOME="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 export MOLT_ROOT="${MOLT_ROOT:-$(cd "$MOLT_CLI_HOME/.." && pwd)}"
 
 # shellcheck source=lib/repos-common.sh
@@ -32,19 +32,23 @@ molt-cli $(molt_cli_version) — Molt workspace (${GITHUB_ORG})
 
 Run one command at a time. All settings: molt-cli info
 
-First time: molt-cli configure prefix  (be | web | mobile | iac)
+clone / pull / check / ssh fix — interactive picker each run (1-5):
+
+  1) be-*  2) web-*  3) mobile-*  4) iac-*  5) all
+
+  molt-cli clone --prefix all     skip picker, all suites
+  molt-cli info                   full picker + add-prefix guide
 
 Core:
   info              Show org, paths, SSH, workspaces, commands
   check             Verify tools, gh, SSH, and local repos
   ssh               test | keys | fix | setup  (GitHub over SSH)
-  configure         Choose suite: be | web | mobile | iac (saved to profile)
   install           Private install (~/.local/bin, not scripts/ on PATH)
   activate          Load in this shell only (source, private)
 
 Workspace:
-  clone             Clone org repos (SSH by default)
-  pull              Checkout + pull local repos
+  clone             Clone org repos (picker or --prefix be|web|mobile|iac|all)
+  pull              Checkout + pull (same picker / --prefix)
   promote           Env branch promotion (list | merge-all | ...)
 
 Scripts repo:
@@ -58,7 +62,7 @@ Examples:
   molt-cli install && molt-cli info
   molt-cli ssh setup --fix
   molt-cli check --quick
-  molt-cli clone --prefix be --dry-run
+  molt-cli clone --prefix all --dry-run
   molt-cli pull --rebase
 EOF
 }
@@ -68,7 +72,6 @@ main() {
   shift || true
   case "$cmd" in
     info)        cmd_info "$@" ;;
-    configure) cmd_configure "$@" ;;
     check)     cmd_check "$@" ;;
     ssh)       cmd_ssh "$@" ;;
     install)   cmd_install "$@" ;;

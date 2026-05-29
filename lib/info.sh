@@ -5,6 +5,49 @@ molt_cli_version() {
   echo "${MOLT_CLI_VERSION:-0.1.0}"
 }
 
+_info_picker_lines() {
+  local s root
+  echo "  clone, pull, check, ssh fix — ask every run (no saved default)"
+  echo ""
+  echo "  Picker menu:"
+  local i=1
+  for s in "${MOLT_VALID_SUITES[@]}"; do
+    root="$(workspace_root_for_prefix "${s}-")"
+    printf "    %s) %s-*   → %s\n" "$i" "$s" "$root"
+    i=$((i + 1))
+  done
+  printf "    %s) all      → be + web + mobile + iac\n" "$i"
+  echo ""
+  echo "  Skip picker:"
+  echo "    molt-cli clone --prefix be"
+  echo "    molt-cli pull --prefix all"
+  echo "    molt-cli check --prefix web --quick"
+  echo "    molt-cli ssh fix --prefix all"
+  echo ""
+  echo "  Single repo (--repo) infers suite from name (be-user → be)."
+}
+
+_info_add_prefix_lines() {
+  cat <<'EOF'
+  To add a new suite (e.g. data-* → molt/data/):
+
+  1. lib/repos-common.sh
+       MOLT_VALID_SUITES=(be web mobile iac data)
+
+  2. lib/prefix.sh
+       _prefix_menu     — add menu line (e.g. 6) data-*)
+       _read_prefix_choice — add 6|data) case
+
+  3. expand_prefixes — "all" loops MOLT_VALID_SUITES (new suite included)
+
+  4. Create folder: mkdir -p ~/Workspace/molt/data
+
+  5. Update README.md and .molt/profile.env.example
+
+  6. molt-cli info   (verify workspace_data path)
+EOF
+}
+
 cmd_info() {
   local json=0
   while [[ $# -gt 0 ]]; do
@@ -12,12 +55,12 @@ cmd_info() {
       --json) json=1 ;;
       -h|--help)
         cat <<'EOF'
-molt-cli info — show all config, paths, and available commands
+molt-cli info — show all config, paths, picker, and commands
 
   molt-cli info
   molt-cli info --json   (key=value lines, easy to grep)
 
-Use before any operation to see org, branch, SSH mode, and workspace paths.
+Shows org, branch, SSH, workspaces, suite picker help, and how to add prefixes.
 EOF
         return 0
         ;;
@@ -47,14 +90,24 @@ EOF
   _kv molt_root "$(molt_root)"
   _kv profile "${pf:-<defaults only>}"
   _kv github_org "$GITHUB_ORG"
-  if [[ -n "${MOLT_DEFAULT_PREFIX:-}" ]]; then
-    _kv default_prefix "$MOLT_DEFAULT_PREFIX"
-  else
-    _kv default_prefix "<not set — run: molt-cli configure prefix>"
-  fi
-  _kv valid_prefixes "${MOLT_VALID_SUITES[*]}"
+  _kv suite_picker "interactive each run (no saved default)"
+  _kv valid_suites "${MOLT_VALID_SUITES[*]}"
+  _kv picker_all "runs every suite in valid_suites"
   _kv default_branch "$MOLT_DEFAULT_BRANCH"
   _kv git_protocol "${MOLT_GIT_PROTOCOL:-ssh}"
+
+  local s root n i=1
+  for s in "${MOLT_VALID_SUITES[@]}"; do
+    root="$(workspace_root_for_prefix "${s}-")"
+    if [[ "$json" -eq 1 ]]; then
+      _kv "picker_${i}" "${s}-* → ${root}"
+    fi
+    i=$((i + 1))
+  done
+  if [[ "$json" -eq 1 ]]; then
+    _kv "picker_${i}" "all → ${MOLT_VALID_SUITES[*]}"
+    _kv prefix_flag "--prefix be|web|mobile|iac|all"
+  fi
 
   if [[ "$json" -eq 0 ]]; then
     echo ""
@@ -83,7 +136,6 @@ EOF
     echo ""
     echo "--- workspaces ---"
   fi
-  local s root n
   for s in "${MOLT_VALID_SUITES[@]}"; do
     root="$(workspace_root_for_prefix "${s}-")"
     if [[ -d "$root" ]]; then
@@ -96,6 +148,12 @@ EOF
 
   if [[ "$json" -eq 0 ]]; then
     echo ""
+    echo "--- suite picker ---"
+    _info_picker_lines
+    echo ""
+    echo "--- add a new prefix ---"
+    _info_add_prefix_lines
+    echo ""
     echo "--- env promote chain ---"
   fi
   local pair head base i=0
@@ -107,24 +165,23 @@ EOF
 
   if [[ "$json" -eq 0 ]]; then
     echo ""
-    echo "--- commands (run one at a time) ---"
+    echo "--- commands ---"
     cat <<'EOF'
-  molt-cli info              This summary (all settings open)
-  molt-cli check             Health: tools, gh, ssh, repos
-  molt-cli check --quick     Faster check (skip remote branch API)
-  molt-cli ssh test          Test GitHub SSH
-  molt-cli ssh setup --fix   gh ssh + test + fix HTTPS remotes
-  molt-cli configure prefix  Set be | web | mobile | iac (saved to profile)
-  molt-cli install           Private install (~/.local/bin)
-  molt-cli activate          Per-shell only: source <(molt-cli activate --print)
-  molt-cli clone             Clone org repos (SSH URLs)
-  molt-cli pull              Pull all local repos
-  molt-cli promote list      List org repos for promotion
-  molt-cli promote merge-all Promote env branches (PR or --ssh-push)
-  molt-cli setup-git         Version-control the scripts repo
+  molt-cli info              This summary
+  molt-cli check             Health (picker or --prefix)
+  molt-cli check --quick     Faster check
+  molt-cli ssh setup --fix   SSH + fix remotes
+  molt-cli install           ~/.local/bin install
+  molt-cli activate          source ~/.config/molt/activate
+  molt-cli clone             Clone (picker: 1-5 or --prefix all)
+  molt-cli pull              Pull (same picker)
+  molt-cli promote list      List org repos (all suites)
+  molt-cli promote merge-all Env branch promotion
+  molt-cli setup-git         Local git for scripts repo
   molt-cli git status        Git in scripts repo only
 
-Profile: ~/.config/molt/profile.env  (copy from scripts/.molt/profile.env.example)
+Profile: ~/.config/molt/profile.env
+Help:    molt-cli <command> --help
 EOF
   fi
 }

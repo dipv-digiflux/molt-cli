@@ -54,11 +54,12 @@ ensure_repo_origin_ssh() {
 cmd_ssh() {
   local sub="${1:-test}"
   shift || true
-  local PREFIX="" fix=0 prefix_explicit=0
+  local PREFIX_ARG="" fix=0 prefix_explicit=0
+  local prefixes=() p root n
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --prefix) PREFIX="$(normalize_prefix "${2:?}")" || return 1; prefix_explicit=1; shift ;;
+      --prefix) PREFIX_ARG="${2:?}"; prefix_explicit=1; shift ;;
       --fix)    fix=1 ;;
       -h|--help)
         cat <<'EOF'
@@ -71,7 +72,7 @@ molt-cli ssh — GitHub SSH for git operations
   molt-cli ssh setup        gh git_protocol=ssh + test + optional --fix
 
 Options:
-  --prefix be|web|mobile|iac   Suite for fix (default from profile)
+  --prefix be|web|mobile|iac|all   Suite(s) for fix (interactive if omitted)
   --fix                    With setup: also fix remotes
 EOF
         return 0
@@ -80,10 +81,6 @@ EOF
     esac
     shift
   done
-
-  if [[ "$prefix_explicit" -eq 0 ]]; then
-    PREFIX="$(resolve_default_prefix)" || return 1
-  fi
 
   require_cmd ssh
   require_cmd git
@@ -113,22 +110,31 @@ EOF
       fi
       ;;
     fix)
-      local root="$WORKSPACE_ROOT"
-      root="${root:-$(workspace_root_for_prefix "$PREFIX")}"
-      echo "=== fix remotes -> SSH ($root) ==="
-      local n=0 repo dir
-      while IFS= read -r repo; do
-        dir="$root/$repo"
-        ensure_repo_origin_ssh "$dir" && n=$((n + 1))
-      done < <(list_workspace_repos "$root" "$PREFIX")
-      echo "done: $n repo(s) checked under $root"
+      if [[ "$prefix_explicit" -eq 1 ]]; then
+        while IFS= read -r p; do prefixes+=("$p"); done < <(expand_prefixes "$PREFIX_ARG")
+      else
+        while IFS= read -r p; do prefixes+=("$p"); done < <(resolve_prefixes "")
+      fi
+      for p in "${prefixes[@]}"; do
+        root="$(workspace_root_for_prefix "$p")"
+        echo "=== fix remotes -> SSH (${p%-}, $root) ==="
+        n=0
+        while IFS= read -r repo; do
+          ensure_repo_origin_ssh "$root/$repo" && n=$((n + 1))
+        done < <(list_workspace_repos "$root" "$p")
+        echo "done: $n repo(s) checked under $root"
+      done
       ;;
     setup)
       echo "=== ssh setup ==="
       apply_gh_git_ssh
       cmd_ssh test || return 1
       if [[ "$fix" -eq 1 ]]; then
-        cmd_ssh fix --prefix "${PREFIX%-}"
+        if [[ "$prefix_explicit" -eq 1 ]]; then
+          cmd_ssh fix --prefix "$PREFIX_ARG"
+        else
+          cmd_ssh fix
+        fi
       fi
       ;;
     *)

@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
-# Interactive MOLT_DEFAULT_PREFIX selection (be | web | mobile | iac).
+# Interactive suite picker — always ask: be | web | mobile | iac | all
+#
+# To add a suite (e.g. data-*):
+#   1. MOLT_VALID_SUITES in lib/repos-common.sh
+#   2. _prefix_menu + _read_prefix_choice here
+#   3. mkdir ~/Workspace/molt/data
+#   "all" expands every entry in MOLT_VALID_SUITES automatically.
 
 prefix_is_valid() {
   local p="${1%-}"
+  [[ "$p" == "all" ]] && return 0
   local s
   for s in "${MOLT_VALID_SUITES[@]}"; do
     [[ "$p" == "$s" ]] && return 0
@@ -10,125 +17,98 @@ prefix_is_valid() {
   return 1
 }
 
-profile_has_prefix_set() {
-  local pf line
-  pf="$(profile_file_resolved 2>/dev/null || true)"
-  [[ -n "$pf" && -f "$pf" ]] || return 1
-  grep -qE '^[[:space:]]*MOLT_DEFAULT_PREFIX=' "$pf" 2>/dev/null
+_prefix_menu() {
+  echo "" >&2
+  echo "Which repos?" >&2
+  echo "" >&2
+  echo "  1) be-*" >&2
+  echo "  2) web-*" >&2
+  echo "  3) mobile-*" >&2
+  echo "  4) iac-*" >&2
+  echo "  5) all     (be + web + mobile + iac)" >&2
+  echo "" >&2
 }
 
-save_prefix_to_profile() {
-  local choice="$1"
-  local pf dir
-  pf="${MOLT_PROFILE:-${XDG_CONFIG_HOME:-$HOME/.config}/molt/profile.env}"
-  dir="$(dirname "$pf")"
-  mkdir -p "$dir"
-  touch "$pf"
-  chmod 600 "$pf" 2>/dev/null || true
-
-  if profile_has_prefix_set; then
-    if grep -qE '^[[:space:]]*MOLT_DEFAULT_PREFIX=' "$pf"; then
-      sed -i "s/^[[:space:]]*MOLT_DEFAULT_PREFIX=.*/MOLT_DEFAULT_PREFIX=${choice}/" "$pf"
-    fi
-  else
-    {
-      echo ""
-      echo "# chosen via molt-cli configure"
-      echo "MOLT_DEFAULT_PREFIX=${choice}"
-    } >>"$pf"
-  fi
-  export MOLT_DEFAULT_PREFIX="$choice"
-  echo "saved: MOLT_DEFAULT_PREFIX=${choice} in $pf"
-}
-
-prompt_for_prefix() {
-  local choice opt
-  echo ""
-  echo "Select suite (MOLT_DEFAULT_PREFIX):"
-  echo "  1) be      backend repos     (be-*)"
-  echo "  2) web      web apps          (web-*)"
-  echo "  3) mobile   mobile apps       (mobile-*)"
-  echo "  4) iac      infrastructure    (iac-*)"
-  echo ""
+_read_prefix_choice() {
+  local choice
   while true; do
     if [[ -t 0 ]] && [[ -r /dev/tty ]]; then
-      read -r -p "Enter 1-4 or name [be/web/mobile/iac]: " choice </dev/tty
+      read -r -p "Enter 1-5 or name [be/web/mobile/iac/all]: " choice </dev/tty
     else
       read -r choice
     fi
     case "${choice,,}" in
-      1|be)     choice=be; break ;;
-      2|web)    choice=web; break ;;
-      3|mobile) choice=mobile; break ;;
-      4|iac|iaac) choice=iac; break ;;
-      "")       choice=be; echo "  (using be)"; break ;;
+      1|be)     echo "be"; return 0 ;;
+      2|web)    echo "web"; return 0 ;;
+      3|mobile) echo "mobile"; return 0 ;;
+      4|iac|iaac) echo "iac"; return 0 ;;
+      5|all)    echo "all"; return 0 ;;
+      "")
+        echo "  pick 1-5 or be/web/mobile/iac/all" >&2
+        ;;
       *)
         if prefix_is_valid "$choice"; then
-          choice="${choice,,}"
-          break
+          echo "${choice,,}"
+          return 0
         fi
-        echo "  invalid — pick be, web, mobile, or iac"
+        echo "  invalid — pick be, web, mobile, iac, or all" >&2
         ;;
     esac
   done
+}
 
-  if [[ -t 0 ]]; then
-    local ans
-    if [[ -r /dev/tty ]]; then
-      read -r -p "Save to ~/.config/molt/profile.env? [Y/n] " ans </dev/tty
-    else
-      read -r ans
+# Prints chosen suite to stdout (be | web | mobile | iac | all).
+prompt_for_prefix() {
+  _prefix_menu
+  _read_prefix_choice
+}
+
+# One normalized prefix per line (be-, web-, …). Expands all → four suites.
+expand_prefixes() {
+  local choice="$1"
+  if prefix_is_all "$choice"; then
+    local s
+    for s in "${MOLT_VALID_SUITES[@]}"; do
+      echo "${s}-"
+    done
+    return 0
+  fi
+  normalize_prefix "$choice"
+}
+
+# Infer be-/web-/… from repo name (be-user → be-).
+infer_prefix_from_repo() {
+  local repo="$1" s
+  for s in "${MOLT_VALID_SUITES[@]}"; do
+    if matches_prefix "$repo" "${s}-"; then
+      echo "${s}-"
+      return 0
     fi
-    case "${ans,,}" in
-      n|no) export MOLT_DEFAULT_PREFIX="$choice" ;;
-      *) save_prefix_to_profile "$choice" ;;
-    esac
-  else
-    save_prefix_to_profile "$choice"
-  fi
-}
-
-# Returns normalized prefix (e.g. be-). Prompts if unset and stdin is a TTY.
-resolve_default_prefix() {
-  local p="${MOLT_DEFAULT_PREFIX:-}"
-  if [[ -n "$p" ]] && prefix_is_valid "$p"; then
-    normalize_prefix "$p"
-    return 0
-  fi
-  if [[ -t 0 ]]; then
-    prompt_for_prefix
-    normalize_prefix "$MOLT_DEFAULT_PREFIX"
-    return 0
-  fi
-  die "set MOLT_DEFAULT_PREFIX to be, web, mobile, or iac in ~/.config/molt/profile.env (or run: molt-cli configure)"
-}
-
-cmd_configure() {
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      prefix|suite) shift; break ;;
-      -h|--help)
-        cat <<'EOF'
-molt-cli configure — set defaults interactively
-
-  molt-cli configure prefix
-
-Chooses and saves MOLT_DEFAULT_PREFIX: be | web | mobile | iac
-EOF
-        return 0
-        ;;
-      *) die "unknown: configure $1 (try: configure prefix)" ;;
-    esac
   done
+  die "cannot infer suite for repo: $repo (use --prefix be|web|mobile|iac)"
+}
 
-  local sub="${1:-prefix}"
-  case "$sub" in
-    prefix|suite)
-      prompt_for_prefix
-      echo "current: MOLT_DEFAULT_PREFIX=${MOLT_DEFAULT_PREFIX}"
-      ;;
-    *)
-      die "unknown: configure $sub"
-      ;;
-  esac
+# explicit: be, web, all, be-, or empty to prompt.
+resolve_prefixes() {
+  local explicit="${1:-}"
+  local choice
+
+  if [[ -n "$explicit" ]]; then
+    choice="${explicit%-}"
+    expand_prefixes "$choice"
+    return 0
+  fi
+
+  if [[ -t 0 ]]; then
+    choice="$(prompt_for_prefix)"
+    expand_prefixes "$choice"
+    return 0
+  fi
+
+  die "pass --prefix be|web|mobile|iac|all (non-interactive shell)"
+}
+
+# Single normalized prefix (be-, …). Rarely used; prefer resolve_prefixes.
+resolve_default_prefix() {
+  resolve_prefixes "${1:-}" | head -n1
 }

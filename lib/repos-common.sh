@@ -8,6 +8,8 @@
 source "$(dirname "${BASH_SOURCE[0]}")/molt-profile.sh"
 
 MOLT_VALID_SUITES=(be web mobile iac)
+# To add a prefix: append here, then update lib/prefix.sh picker menu.
+# "all" (--prefix all / picker 5) runs every suite in this list.
 
 die() { echo "error: $*" >&2; exit 1; }
 
@@ -15,21 +17,29 @@ require_cmd() {
   command -v "$1" >/dev/null || die "missing command: $1 (install and retry)"
 }
 
-# be- -> $MOLT_ROOT/be, web- -> $MOLT_ROOT/web, mobile- -> $MOLT_ROOT/mobile
+# be- -> $MOLT_ROOT/be, web- -> $MOLT_ROOT/web
 workspace_root_for_prefix() {
   local prefix="${1:-be-}"
   local suite="${prefix%-}"
   echo "$(molt_root)/$suite"
 }
 
+prefix_is_all() {
+  [[ "${1%-}" == "all" ]]
+}
+
 normalize_prefix() {
   local p="${1:-be}"
   p="${p%-}"
+  if prefix_is_all "$p"; then
+    echo "all"
+    return 0
+  fi
   local s
   for s in "${MOLT_VALID_SUITES[@]}"; do
     [[ "$p" == "$s" ]] && echo "${p}-" && return 0
   done
-  echo "error: prefix must be one of: ${MOLT_VALID_SUITES[*]} (got: $1)" >&2
+  echo "error: prefix must be one of: ${MOLT_VALID_SUITES[*]} or all (got: $1)" >&2
   return 1
 }
 

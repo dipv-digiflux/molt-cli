@@ -13,7 +13,9 @@ Workspace CLI for Molt repos. Clone, pull, check, and promote environment branch
 - [Quick start](#quick-start)
 - [Install](#install)
 - [Configuration](#configuration)
-- [Suite prefix (required)](#suite-prefix-required)
+- [Suite picker](#suite-picker)
+- [Using prefixes and `all`](#using-prefixes-and-all)
+- [Adding a new prefix](#adding-a-new-prefix)
 - [Daily workflow](#daily-workflow)
 - [Commands reference](#commands-reference)
 - [Examples by task](#examples-by-task)
@@ -66,20 +68,8 @@ cd ~/Workspace/molt/scripts
 # 2. Load in this shell if molt-cli is not found
 source <(molt-cli activate --print)
 
-# 3. Choose your suite (be | web | mobile | iac)
-molt-cli configure prefix
-
-# 4. Copy and edit profile
-mkdir -p ~/.config/molt
-cp .molt/profile.env.example ~/.config/molt/profile.env
-# edit ~/.config/molt/profile.env
-
-# 5. SSH + health check
-molt-cli ssh setup --fix
-molt-cli check --quick
-
-# 6. Clone and work
-molt-cli clone --prefix be
+# 3. Clone and work (picker asks: be / web / mobile / iac / all)
+molt-cli clone
 molt-cli pull
 ```
 
@@ -155,7 +145,6 @@ Profile search order (first file found is loaded):
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `MOLT_DEFAULT_PREFIX` | *(none)* | Suite: `be`, `web`, `mobile`, or `iac` |
 | `GITHUB_ORG` | `molt-digiflux` | GitHub organization |
 | `MOLT_DEFAULT_BRANCH` | `env/staging` | Branch to checkout on clone/pull |
 | `MOLT_GIT_PROTOCOL` | `ssh` | `ssh` or `https` for clone URLs |
@@ -171,8 +160,6 @@ Profile search order (first file found is loaded):
 
 ```bash
 # ~/.config/molt/profile.env
-
-MOLT_DEFAULT_PREFIX=be
 
 GITHUB_ORG=molt-digiflux
 MOLT_DEFAULT_BRANCH=env/staging
@@ -198,48 +185,153 @@ molt-cli info --json    # key=value lines, easy to grep
 
 ---
 
-## Suite prefix (required)
+## Suite picker
 
-Choose **one** suite before clone/pull/check:
+There is **no saved default prefix**. Every interactive run of these commands shows a menu:
 
-| Prefix | Folder | Repo pattern |
-|--------|--------|--------------|
-| `be` | `~/Workspace/molt/be/` | `be-*` |
-| `web` | `~/Workspace/molt/web/` | `web-*` |
-| `mobile` | `~/Workspace/molt/mobile/` | `mobile-*` |
-| `iac` | `~/Workspace/molt/iac/` | `iac-*` |
+| Command | Uses picker |
+|---------|-------------|
+| `molt-cli clone` | yes |
+| `molt-cli pull` | yes |
+| `molt-cli check` | yes |
+| `molt-cli ssh fix` | yes |
+| `molt-cli ssh setup --fix` | yes (when fixing remotes) |
 
-### Set interactively
+### Menu
 
-```bash
-molt-cli configure prefix
+```
+Which repos?
+
+  1) be-*
+  2) web-*
+  3) mobile-*
+  4) iac-*
+  5) all     (be + web + mobile + iac)
+
+Enter 1-5 or name [be/web/mobile/iac/all]:
 ```
 
-### Set in profile
+| Pick | What runs |
+|------|-----------|
+| `1` or `be` | Only `be-*` repos → `~/Workspace/molt/be/` |
+| `2` or `web` | Only `web-*` repos → `molt/web/` |
+| `3` or `mobile` | Only `mobile-*` repos → `molt/mobile/` |
+| `4` or `iac` | Only `iac-*` repos → `molt/iac/` |
+| `5` or `all` | **All four suites** in order (be, then web, then mobile, then iac) |
+
+See current paths and repo counts: `molt-cli info`
+
+---
+
+## Using prefixes and `all`
+
+### Interactive (picker)
 
 ```bash
-MOLT_DEFAULT_PREFIX=be   # or web | mobile | iac
+molt-cli clone          # pick 1-5 when prompted
+molt-cli pull           # same menu
+molt-cli check          # same menu
+molt-cli ssh fix        # same menu
 ```
 
-### Override per command
+### Skip picker with `--prefix`
 
 ```bash
-molt-cli clone --prefix web
-molt-cli pull --prefix mobile
-molt-cli check --prefix iac
+# One suite
+molt-cli clone --prefix be
+molt-cli pull --prefix web --rebase
+molt-cli check --prefix iac --quick
+molt-cli ssh fix --prefix mobile
+
+# All suites (same as picking 5 in the menu)
+molt-cli clone --prefix all
+molt-cli pull --prefix all
+molt-cli check --prefix all
+molt-cli ssh setup --fix --prefix all
 ```
+
+### Other flags
+
+```bash
+molt-cli clone --prefix all --dry-run     # preview all suites
+molt-cli clone --repo be-user             # infers be (no picker)
+molt-cli pull --repo web-portal --prefix web
+molt-cli clone --prefix be --branch env/uat
+```
+
+### Non-interactive shells (CI, scripts)
+
+The picker needs a terminal. In CI, always pass `--prefix`:
+
+```bash
+molt-cli clone --prefix all
+molt-cli check --prefix be --quick
+```
+
+---
+
+## Adding a new prefix
+
+To add a suite (example: `data-*` repos in `~/Workspace/molt/data/`):
+
+### 1. Register the suite
+
+Edit `lib/repos-common.sh`:
+
+```bash
+MOLT_VALID_SUITES=(be web mobile iac data)
+```
+
+`all` automatically includes every entry in this list.
+
+### 2. Add picker menu entry
+
+Edit `lib/prefix.sh` — `_prefix_menu()`:
+
+```bash
+echo "  6) data-*" >&2
+```
+
+Edit `_read_prefix_choice()`:
+
+```bash
+6|data) echo "data"; return 0 ;;
+```
+
+Update the prompt text to include `data` in the valid names list.
+
+### 3. Create workspace folder
+
+```bash
+mkdir -p ~/Workspace/molt/data
+```
+
+### 4. Document
+
+- Update `README.md` (workspace layout + picker table)
+- Update `.molt/profile.env.example`
+- Run `molt-cli info` to verify `workspace_data` path
+
+### 5. Test
+
+```bash
+./molt-cli info
+./clone-all.sh --prefix data --dry-run
+molt-cli clone --prefix data
+```
+
+No profile variable is required — the new suite appears in the picker on the next run.
 
 ---
 
 ## Daily workflow
 
 ```bash
-molt-cli info                    # see all settings
+molt-cli info                    # paths, picker help, add-prefix guide
 molt-cli ssh setup --fix         # SSH + fix HTTPS remotes
-molt-cli check --quick           # health check
-molt-cli clone --prefix be       # clone all be-* repos
-molt-cli pull                    # checkout + pull all local repos
-molt-cli pull --rebase           # pull with rebase
+molt-cli check                   # picker → pick suite or all
+molt-cli clone                   # picker → clone org repos
+molt-cli pull --rebase           # picker → pull local repos
 ```
 
 ---
@@ -250,11 +342,9 @@ molt-cli pull --rebase           # pull with rebase
 
 | Command | Description |
 |---------|-------------|
-| `info` | Show org, paths, SSH status, workspaces, commands |
+| `info` | Config, workspaces, picker menu, add-prefix guide |
 | `info --json` | Same as info, `key=value` format |
-| `check` | Verify tools, gh auth, SSH, and local repos |
-| `check --quick` | Skip slow per-repo GitHub API branch checks |
-| `configure prefix` | Interactively set and save suite prefix |
+| `check` | Health check (picker or `--prefix`; `--quick`) |
 | `install` | Private install to `~/.local/bin` |
 | `activate` | Load CLI in current shell only |
 
@@ -264,16 +354,18 @@ molt-cli pull --rebase           # pull with rebase
 |---------|-------------|
 | `ssh test` | Test GitHub SSH authentication |
 | `ssh keys` | List keys loaded in ssh-agent |
-| `ssh fix` | Rewrite workspace remotes to SSH URLs |
+| `ssh fix` | Fix remotes to SSH (picker or `--prefix all`) |
 | `ssh setup` | Set `gh git_protocol=ssh` + test |
-| `ssh setup --fix` | Setup + fix all remotes |
+| `ssh setup --fix` | Setup + fix remotes (picker or `--prefix`) |
 
 ### Workspace
 
 | Command | Description |
 |---------|-------------|
-| `clone` | Clone org repos matching prefix (SSH by default) |
-| `pull` | Checkout branch + pull all local repos |
+| `clone` | Clone org repos (picker 1–5 or `--prefix`) |
+| `clone --prefix all` | Clone all suites in one run |
+| `pull` | Checkout + pull local repos (picker or `--prefix`) |
+| `pull --prefix all` | Pull every suite |
 | `promote list` | List org repos (all suites) |
 | `promote merge-all` | Promote env branches via PRs |
 | `promote merge-all --ssh-push` | Promote via git merge + push |
@@ -292,8 +384,9 @@ molt-cli pull --rebase           # pull with rebase
 Every command supports `--help`:
 
 ```bash
+molt-cli check --help
 molt-cli clone --help
-molt-cli promote merge-all --help
+molt-cli pull --help
 ```
 
 ---
@@ -307,7 +400,8 @@ cd ~/Workspace/molt/scripts
 ./molt-cli install
 source <(molt-cli activate --print)
 
-molt-cli configure prefix          # pick be, web, mobile, or iac
+molt-cli clone                    # interactive picker
+molt-cli clone --prefix all       # all suites, no picker
 cp .molt/profile.env.example ~/.config/molt/profile.env
 # edit profile with your name/email
 
@@ -373,7 +467,6 @@ molt-cli ssh setup --fix                # full setup + fix
 ### Switch suite (e.g. backend → web)
 
 ```bash
-molt-cli configure prefix               # choose web
 molt-cli clone --prefix web
 molt-cli pull --prefix web
 ```
@@ -497,7 +590,7 @@ molt-cli install --force
 | Problem | Fix |
 |---------|-----|
 | `molt-cli: command not found` | `source <(molt-cli activate --print)` or add `~/.local/bin` to PATH |
-| `set MOLT_DEFAULT_PREFIX` error | Run `molt-cli configure prefix` or set in profile |
+| Non-interactive shell | Use `--prefix be` or `--prefix all` |
 | GitHub SSH failed | `ssh-add ~/.ssh/id_ed25519` then `molt-cli ssh setup --fix` |
 | `gh not logged in` | `gh auth login` |
 | Origin not SSH | `molt-cli ssh fix` |
@@ -543,6 +636,8 @@ scripts/
     └── profile.env.example
 ```
 
+**Adding a new prefix:** see [Adding a new prefix](#adding-a-new-prefix) above.
+
 **Adding a new command:**
 
 1. Add handler in `molt-cli` `main()` case statement
@@ -582,7 +677,7 @@ cd ~/Workspace/molt/scripts
 ./molt-cli install
 cp .molt/profile.env.example ~/.config/molt/profile.env
 # edit profile
-molt-cli configure prefix
+molt-cli clone --prefix all
 molt-cli ssh setup --fix
 molt-cli clone
 ```

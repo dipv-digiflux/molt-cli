@@ -48,8 +48,6 @@ molt_load_profile() {
 
   : "${GITHUB_ORG:=molt-digiflux}"
   : "${MOLT_DEFAULT_BRANCH:=env/staging}"
-  # Set in ~/.config/molt/profile.env or via: molt-cli configure prefix
-  : "${MOLT_DEFAULT_PREFIX:=}"
   : "${MERGE_STYLE:=merge}"
   : "${GIT_PROMOTE_EMAIL:=promote@local}"
   : "${GIT_PROMOTE_NAME:=env-promote-script}"
@@ -70,7 +68,7 @@ molt_load_profile() {
     )
   fi
 
-  export GITHUB_ORG MOLT_DEFAULT_BRANCH MOLT_DEFAULT_PREFIX MERGE_STYLE
+  export GITHUB_ORG MOLT_DEFAULT_BRANCH MERGE_STYLE
   export GIT_PROMOTE_EMAIL GIT_PROMOTE_NAME MOLT_ROOT
   export MOLT_ENV_CHAIN
 }
