@@ -13,8 +13,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # shellcheck source=lib/repos-common.sh
 source "$SCRIPT_DIR/lib/repos-common.sh"
+# shellcheck source=lib/ssh.sh
+source "$SCRIPT_DIR/lib/ssh.sh"
+# shellcheck source=lib/prefix.sh
+source "$SCRIPT_DIR/lib/prefix.sh"
 
-PREFIX="$(normalize_prefix "$MOLT_DEFAULT_PREFIX")"
+PREFIX=""
+PREFIX_EXPLICIT=0
 BRANCH="$MOLT_DEFAULT_BRANCH"
 DRY_RUN=0
 ONLY_REPO=""
@@ -22,7 +27,7 @@ ONLY_REPO=""
 cmd_clone() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --prefix)   PREFIX="$(normalize_prefix "${2:?}")" || exit 1; shift ;;
+      --prefix)   PREFIX="$(normalize_prefix "${2:?}")" || exit 1; PREFIX_EXPLICIT=1; shift ;;
       --branch)   BRANCH="${2:?}"; shift ;;
       --repo)     ONLY_REPO="${2:?}"; shift ;;
       --dry-run)  DRY_RUN=1 ;;
@@ -34,6 +39,10 @@ cmd_clone() {
     esac
     shift
   done
+
+  if [[ "$PREFIX_EXPLICIT" -eq 0 ]]; then
+    PREFIX="$(resolve_default_prefix)"
+  fi
 
   require_cmd gh
   require_cmd git
@@ -76,7 +85,8 @@ cmd_clone() {
     fi
 
     if git clone "$url" "$dir"; then
-      echo "  cloned"
+      echo "  cloned ($url)"
+      ensure_repo_origin_ssh "$dir" 2>/dev/null || true
       if checkout_branch "$dir" "$BRANCH"; then
         echo "  checked out $BRANCH"
       else

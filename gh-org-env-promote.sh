@@ -47,7 +47,7 @@ merge_pr() {
 }
 
 cmd_list() {
-  echo "# repos in ${GITHUB_ORG} matching be-*, web-*, mobile-*"
+  echo "# repos in ${GITHUB_ORG} matching be-*, web-*, mobile-*, iac-*"
   list_org_repos_any_suite
 }
 

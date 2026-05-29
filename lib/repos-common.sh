@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Shared helpers for molt workspace scripts.
 #
-# Layout: $MOLT_ROOT/{be,web,mobile}/<prefix>-*
+# Layout: $MOLT_ROOT/{be,web,mobile,iac}/<prefix>-*
 # Scripts: $MOLT_ROOT/scripts/
 
 # shellcheck source=lib/molt-profile.sh
 source "$(dirname "${BASH_SOURCE[0]}")/molt-profile.sh"
 
-MOLT_VALID_SUITES=(be web mobile)
+MOLT_VALID_SUITES=(be web mobile iac)
 
 die() { echo "error: $*" >&2; exit 1; }
 
@@ -86,11 +86,20 @@ list_workspace_repos() {
   done | sort -u
 }
 
+ssh_url_for_repo() {
+  local repo="$1"
+  echo "git@${MOLT_GITHUB_HOST:-github.com}:${GITHUB_ORG}/${repo}.git"
+}
+
 clone_url_for() {
   local repo="$1"
+  if [[ "${MOLT_GIT_PROTOCOL:-ssh}" == "ssh" ]]; then
+    ssh_url_for_repo "$repo"
+    return 0
+  fi
   local url
-  url="$(gh repo view "${GITHUB_ORG}/${repo}" --json sshUrl --jq -r '.sshUrl // empty' 2>/dev/null || true)"
-  [[ -n "$url" ]] || url="git@github.com:${GITHUB_ORG}/${repo}.git"
+  url="$(gh repo view "${GITHUB_ORG}/${repo}" --json url --jq -r '.url // empty' 2>/dev/null || true)"
+  [[ -n "$url" ]] || url="https://github.com/${GITHUB_ORG}/${repo}.git"
   echo "$url"
 }
 

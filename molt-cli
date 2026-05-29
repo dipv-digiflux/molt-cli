@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+# molt-cli — Molt workspace CLI (run from anywhere after: molt-cli install)
+#
+#   molt-cli info
+#   molt-cli check
+#   molt-cli ssh setup --fix
+#   molt-cli clone | pull | promote ...
+#
+set -euo pipefail
+
+MOLT_CLI_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export MOLT_ROOT="${MOLT_ROOT:-$(cd "$MOLT_CLI_HOME/.." && pwd)}"
+
+# shellcheck source=lib/repos-common.sh
+source "$MOLT_CLI_HOME/lib/repos-common.sh"
+# shellcheck source=lib/ssh.sh
+source "$MOLT_CLI_HOME/lib/ssh.sh"
+# shellcheck source=lib/prefix.sh
+source "$MOLT_CLI_HOME/lib/prefix.sh"
+# shellcheck source=lib/check.sh
+source "$MOLT_CLI_HOME/lib/check.sh"
+# shellcheck source=lib/git-local.sh
+source "$MOLT_CLI_HOME/lib/git-local.sh"
+# shellcheck source=lib/info.sh
+source "$MOLT_CLI_HOME/lib/info.sh"
+# shellcheck source=lib/install-cmd.sh
+source "$MOLT_CLI_HOME/lib/install-cmd.sh"
+
+usage() {
+  cat <<EOF
+molt-cli $(molt_cli_version) — Molt workspace (${GITHUB_ORG})
+
+Run one command at a time. All settings: molt-cli info
+
+First time: molt-cli configure prefix  (be | web | mobile | iac)
+
+Core:
+  info              Show org, paths, SSH, workspaces, commands
+  check             Verify tools, gh, SSH, and local repos
+  ssh               test | keys | fix | setup  (GitHub over SSH)
+  configure         Choose suite: be | web | mobile | iac (saved to profile)
+  install           Private install (~/.local/bin, not scripts/ on PATH)
+  activate          Load in this shell only (source, private)
+
+Workspace:
+  clone             Clone org repos (SSH by default)
+  pull              Checkout + pull local repos
+  promote           Env branch promotion (list | merge-all | ...)
+
+Scripts repo:
+  setup-git         Local git for tooling version history
+  git               status | log | diff | tag (scripts repo only)
+
+Config: ~/.config/molt/profile.env
+Help:   molt-cli <command> --help
+
+Examples:
+  molt-cli install && molt-cli info
+  molt-cli ssh setup --fix
+  molt-cli check --quick
+  molt-cli clone --prefix be --dry-run
+  molt-cli pull --rebase
+EOF
+}
+
+main() {
+  local cmd="${1:-}"
+  shift || true
+  case "$cmd" in
+    info)        cmd_info "$@" ;;
+    configure) cmd_configure "$@" ;;
+    check)     cmd_check "$@" ;;
+    ssh)       cmd_ssh "$@" ;;
+    install)   cmd_install "$@" ;;
+    activate)  cmd_activate "$@" ;;
+    setup-git) cmd_setup_git "$@" ;;
+    git)       cmd_git "$@" ;;
+    clone)     exec "$MOLT_CLI_HOME/clone-all.sh" "$@" ;;
+    pull)      exec "$MOLT_CLI_HOME/pull-all.sh" "$@" ;;
+    promote)   exec "$MOLT_CLI_HOME/gh-org-env-promote.sh" "$@" ;;
+    ""|-h|--help|help) usage; exit 0 ;;
+    *)
+      die "unknown command: $cmd (try: molt-cli info)"
+      ;;
+  esac
+}
+
+main "$@"

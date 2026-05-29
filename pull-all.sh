@@ -12,8 +12,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # shellcheck source=lib/repos-common.sh
 source "$SCRIPT_DIR/lib/repos-common.sh"
+# shellcheck source=lib/prefix.sh
+source "$SCRIPT_DIR/lib/prefix.sh"
 
-PREFIX="$(normalize_prefix "$MOLT_DEFAULT_PREFIX")"
+PREFIX=""
+PREFIX_EXPLICIT=0
 BRANCH="$MOLT_DEFAULT_BRANCH"
 PULL_MODE=""
 DRY_RUN=0
@@ -22,7 +25,7 @@ ONLY_REPO=""
 cmd_pull() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --prefix)   PREFIX="$(normalize_prefix "${2:?}")" || exit 1; shift ;;
+      --prefix)   PREFIX="$(normalize_prefix "${2:?}")" || exit 1; PREFIX_EXPLICIT=1; shift ;;
       --branch)   BRANCH="${2:?}"; shift ;;
       --rebase)   PULL_MODE="--rebase" ;;
       --ff-only)  PULL_MODE="--ff-only" ;;
@@ -36,6 +39,10 @@ cmd_pull() {
     esac
     shift
   done
+
+  if [[ "$PREFIX_EXPLICIT" -eq 0 ]]; then
+    PREFIX="$(resolve_default_prefix)"
+  fi
 
   require_cmd git
 
