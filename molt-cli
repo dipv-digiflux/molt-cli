@@ -34,7 +34,7 @@ Run one command at a time. All settings: molt-cli info
 
 clone / pull / check / ssh fix — interactive picker each run:
 
-  be / web / mobile / iaac-* / other / all
+  be / web / mobile / iaac-* / pkg-* / other / all
 
   molt-cli clone --prefix all     skip picker, all suites
   molt-cli info                   full picker + add-prefix guide
@@ -47,7 +47,7 @@ Core:
   activate          Load in this shell only (source, private)
 
 Workspace:
-  clone             Clone org repos (picker or --prefix be|web|mobile|iaac|other|all)
+  clone             Clone org repos (picker or --prefix be|web|mobile|iaac|pkg|other|all)
   pull              Checkout + pull (same picker / --prefix)
   promote           Env branch promotion (list | merge-all | ...)
 

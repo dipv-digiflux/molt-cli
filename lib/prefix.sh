@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Interactive suite picker — be | web | mobile | iaac (iaac-*) | other | all
+# Interactive suite picker — be | web | mobile | iaac (iaac-*) | pkg (pkg-*) | other | all
 #
 # To add a suite (e.g. data-*):
 #   1. MOLT_VALID_SUITES in lib/repos-common.sh
@@ -129,7 +129,7 @@ resolve_prefixes() {
     return 0
   fi
 
-  die "pass --prefix be|web|mobile|iaac|other|all (non-interactive shell)"
+  die "pass --prefix be|web|mobile|iaac|pkg|other|all (non-interactive shell)"
 }
 
 # Single normalized prefix (be-, …). Rarely used; prefer resolve_prefixes.

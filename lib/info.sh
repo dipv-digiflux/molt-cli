@@ -31,7 +31,7 @@ _info_add_prefix_lines() {
   To add a new suite (e.g. data-* → molt/data/):
 
   1. lib/repos-common.sh
-       MOLT_VALID_SUITES=(be web mobile iaac data)
+       MOLT_VALID_SUITES=(be web mobile iaac pkg other data)
 
   2. lib/prefix.sh
        _prefix_menu     — add menu line (e.g. 6) data-*)
@@ -105,7 +105,7 @@ EOF
   done
   if [[ "$json" -eq 1 ]]; then
     _kv "picker_${i}" "all → ${MOLT_VALID_SUITES[*]}"
-    _kv prefix_flag "--prefix be|web|mobile|iaac|other|all"
+    _kv prefix_flag "--prefix be|web|mobile|iaac|pkg|other|all"
   fi
 
   if [[ "$json" -eq 0 ]]; then

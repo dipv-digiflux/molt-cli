@@ -2,7 +2,7 @@
 # Clone org repos by suite. Interactive picker or --prefix.
 #
 # Usage:
-#   ./clone-all.sh                    # picker: be web mobile iaac other all
+#   ./clone-all.sh                    # picker: be web mobile iaac pkg other all
 #   molt clone --prefix web
 #   molt clone --prefix all
 #   ./clone-all.sh --repo be-user --dry-run

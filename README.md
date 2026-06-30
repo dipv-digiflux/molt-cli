@@ -52,10 +52,11 @@ You also need:
 ├── web/              ← web apps        (web-*)
 ├── mobile/           ← mobile apps     (mobile-*)
 ├── iaac/              ← infrastructure  (iaac-*)
-└── other/            ← everything else   (not be/web/mobile/iaac)
+├── pkg/              ← shared packages   (pkg-*)
+└── other/            ← everything else   (not be/web/mobile/iaac/pkg)
 ```
 
-Each suite folder holds cloned repos for that suite, e.g. `be/be-user`, `iaac/iaac-vpc`, `other/molt-scripts`.
+Each suite folder holds cloned repos for that suite, e.g. `be/be-user`, `iaac/iaac-vpc`, `pkg/pkg-fitness-calculation`, `other/molt-scripts`.
 
 ---
 
@@ -69,7 +70,7 @@ cd ~/Workspace/molt/molt-cli
 # 2. Load in this shell if molt-cli is not found
 source <(molt-cli activate --print)
 
-# 3. Clone and work (picker asks: be / web / mobile / iaac / other / all)
+# 3. Clone and work (picker asks: be / web / mobile / iaac / pkg / other / all)
 molt-cli clone
 molt-cli pull
 ```
@@ -207,10 +208,11 @@ Which repos?
   2) web-*
   3) mobile-*
   4) iaac-*     → molt/iaac/
-  5) other      → molt/other/ (repos not be/web/mobile/iaac)
-  6) all        (be + web + mobile + iaac + other)
+  5) pkg-*      → molt/pkg/
+  6) other      → molt/other/ (repos not be/web/mobile/iaac/pkg)
+  7) all        (be + web + mobile + iaac + pkg + other)
 
-Enter 1-6 or name [be/web/mobile/iaac/other/all]:
+Enter 1-7 or name [be/web/mobile/iaac/pkg/other/all]:
 ```
 
 | Pick | What runs |
@@ -219,8 +221,9 @@ Enter 1-6 or name [be/web/mobile/iaac/other/all]:
 | `2` or `web` | Only `web-*` repos → `molt/web/` |
 | `3` or `mobile` | Only `mobile-*` repos → `molt/mobile/` |
 | `4` or `iaac` / `iaac` | Only `iaac-*` repos → `molt/iaac/` |
-| `5` or `other` | Org repos that do not match be/web/mobile/iaac prefixes → `molt/other/` |
-| `6` or `all` | **All suites** in order (be, web, mobile, iaac, other) |
+| `5` or `pkg` | Only `pkg-*` repos → `molt/pkg/` |
+| `6` or `other` | Org repos that do not match be/web/mobile/iaac/pkg prefixes → `molt/other/` |
+| `7` or `all` | **All suites** in order (be, web, mobile, iaac, pkg, other) |
 
 See current paths and repo counts: `molt-cli info`
 
@@ -282,7 +285,7 @@ To add a suite (example: `data-*` repos in `~/Workspace/molt/data/`):
 Edit `lib/repos-common.sh`:
 
 ```bash
-MOLT_VALID_SUITES=(be web mobile iaac other data)
+MOLT_VALID_SUITES=(be web mobile iaac pkg other data)
 ```
 
 `all` automatically includes every entry in this list.

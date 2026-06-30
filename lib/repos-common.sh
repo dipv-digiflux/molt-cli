@@ -7,7 +7,7 @@
 # shellcheck source=lib/molt-profile.sh
 source "$(dirname "${BASH_SOURCE[0]}")/molt-profile.sh"
 
-MOLT_VALID_SUITES=(be web mobile iaac other)
+MOLT_VALID_SUITES=(be web mobile iaac pkg other)
 # To add a prefix: append here, then update lib/prefix.sh picker menu.
 # "all" (--prefix all) runs every suite in this list.
 
@@ -34,7 +34,7 @@ suite_menu_label() {
   case "$s" in
     other)
       root="$(workspace_root_for_prefix "other")"
-      echo "other      → ${root}/ (not be/web/mobile/iaac)"
+      echo "other      → ${root}/ (not be/web/mobile/iaac/pkg)"
       ;;
     *)
       root="$(workspace_root_for_prefix "${s}-")"

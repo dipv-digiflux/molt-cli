@@ -90,7 +90,7 @@ cmd_check() {
 molt-cli check — verify tools, GitHub auth, SSH, and local repos
 
 Usage:
-  molt-cli check                  Interactive picker (be/web/mobile/iaac/other/all)
+  molt-cli check                  Interactive picker (be/web/mobile/iaac/pkg/other/all)
   molt-cli check --quick          Skip slow per-repo GitHub API branch checks
   molt-cli check --prefix web
   molt-cli check --prefix all
